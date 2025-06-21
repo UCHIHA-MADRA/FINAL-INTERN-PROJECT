@@ -1,0 +1,60 @@
+services:
+  # FastAPI Backend Service
+  - type: web
+    name: gemini-pdf-chat-api
+    runtime: python
+    repo: https://github.com/yourusername/gemini-pdf-chat.git # Replace with your actual repo
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    plan: starter # or standard/pro based on your needs
+    region: oregon # or your preferred region
+    branch: main # or your deployment branch
+
+    # Environment Variables
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false # Set this manually in Render dashboard
+      - key: MONGO_URI
+        sync: false # Set this manually in Render dashboard
+      - key: REDIS_HOST
+        sync: false # Set this manually in Render dashboard
+      - key: REDIS_PORT
+        sync: false # Set this manually in Render dashboard
+      - key: REDIS_USERNAME
+        sync: false # Set this manually in Render dashboard
+      - key: REDIS_PASSWORD
+        sync: false # Set this manually in Render dashboard
+      - key: PYTHONPATH
+        value: "."
+      - key: PORT
+        value: "8000"
+
+    # Health check endpoint
+    healthCheckPath: /health
+
+    # Disk space for temporary files (PDF processing)
+    disk:
+      name: pdf-temp
+      mountPath: /tmp
+      sizeGB: 1
+
+  # Streamlit Frontend Service
+  - type: web
+    name: gemini-pdf-chat-frontend
+    runtime: python
+    repo: https://github.com/yourusername/gemini-pdf-chat.git # Replace with your actual repo
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    plan: starter
+    region: oregon
+    branch: main
+
+    # Environment Variables for Frontend
+    envVars:
+      - key: API_BASE_URL
+        value: "https://gemini-pdf-chat-api.onrender.com" # Replace with your actual API service URL
+      - key: PORT
+        value: "8501"
+
+    # Health check for Streamlit
+    healthCheckPath: /_stcore/health
