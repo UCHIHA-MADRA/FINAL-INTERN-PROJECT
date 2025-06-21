@@ -41,13 +41,27 @@ messages = db["messages"]
 # Redis with proper typing
 redis_client: Optional[redis.Redis] = None
 try:
-    redis_client = redis.Redis(
-        host=os.getenv("REDIS_HOST", "localhost"), 
-        port=6379, 
-        decode_responses=True
-    )
+    # Check if REDIS_URL is provided first (for cloud services)
+    redis_url = os.getenv("REDIS_URL")
+    
+    if redis_url:
+        # Use Redis URL (works with Redis Cloud, Upstash, AWS ElastiCache, etc.)
+        redis_client = redis.from_url(redis_url, decode_responses=True)
+    else:
+        # Fallback to individual parameters
+        redis_client = redis.Redis(
+            host=os.getenv("REDIS_HOST", "localhost"), 
+            port=int(os.getenv("REDIS_PORT", "6379")),
+            password=os.getenv("REDIS_PASSWORD"),  # Add password support
+            db=int(os.getenv("REDIS_DB", "0")),    # Add database selection
+            ssl=os.getenv("REDIS_SSL", "false").lower() == "true",  # Add SSL support
+            decode_responses=True
+        )
+    
     redis_client.ping()
-except Exception:
+    print("✅ Redis connected successfully")
+except Exception as e:
+    print(f"❌ Redis connection failed: {e}")
     redis_client = None
 
 # In-memory storage for PDF content
